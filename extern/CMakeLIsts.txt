@@ -1,0 +1,3 @@
+add_subdirectory(SDL SYSTEM)
+add_subdirectory(SDL_image SYSTEM)
+add_subdirectory(glm SYSTEM)
