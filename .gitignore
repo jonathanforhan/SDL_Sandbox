@@ -2,3 +2,5 @@
 out/
 *build*/
 assets/**
+CMakePresets.json
+CMakeUserPresets.json
