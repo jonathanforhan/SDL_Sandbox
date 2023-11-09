@@ -1,26 +1,57 @@
 #define INCLUDE_SDL
 #include <cmath>
+#include <iostream>
 #include "Engine.hpp"
 #include "Sprite.hpp"
 
 // get time in between frames
+// this is essential to ensure that a fast CPU won't make your game fast
+// and a slow CPU won't make it slow
 float deltaTime();
 
 int main() {
     Engine& engine = Engine::instance();
     engine.createWindow("Jack's Sweet Sandbox", 1200, 800, WindowOptionBits::eResizeable);
 
-    Sprite sprite("assets/Dungeon_Asset_Pack/character and tileset/Dungeon_Character.png", 0, 0, 16, 16);
+    Sprite sprite("assets/Dungeon_Asset_Pack/character and tileset/Dungeon_Character.png", SDL_FRect{4, 3, 16, 16});
+    sprite.setPosition(100, 100);
+    sprite.scaleBy(10);
 
-    float timeSinceStart = 0;
+    float speed = 0.4f;
+    float g = 0.0f;
+    bool jumping = true;
 
     while(!engine.shouldClose()) {
-        timeSinceStart += deltaTime();
-        float x = 100 * cos(timeSinceStart / 1000) + engine.windowWidth() / 2 - 50;
-        float y = 100 * sin(timeSinceStart / 1000) + engine.windowHeight() / 2 - 50;
         engine.pollEvents();
         engine.clear();
-        sprite.draw(x, y, 100.0f, 100.0f);
+
+        float dt = deltaTime();
+        float screenHeight = engine.windowHeight() - 100 - sprite.height();
+
+        if (engine.getKeyState(SDL_SCANCODE_W) && !jumping) {
+            jumping = true;
+            g = -0.5f;
+        }
+        if (engine.getKeyState(SDL_SCANCODE_A)) {
+            sprite.moveLeft(speed * dt);
+            if (!sprite.isFlipped())
+                sprite.flip();
+        }
+        if (engine.getKeyState(SDL_SCANCODE_D)) {
+            sprite.moveRight(speed * dt);
+            if (sprite.isFlipped())
+                sprite.flip();
+        }
+
+        if (sprite.positionY() <= screenHeight && jumping) {
+            sprite.setPositionY(sprite.positionY() + g * dt);
+            g += 0.001 * dt;
+        } else {
+            sprite.setPositionY(screenHeight);
+            jumping = false;
+        }
+
+        sprite.draw();
         engine.present();
     }
 }

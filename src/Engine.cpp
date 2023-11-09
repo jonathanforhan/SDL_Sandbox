@@ -7,13 +7,14 @@
 Engine::Engine() {
     SDL_Init(SDL_INIT_EVERYTHING);
     IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
+    m_keystate = SDL_GetKeyboardState(NULL);
 }
 
 Engine::~Engine() {
     // cleanup
 
-    for (auto texture : m_textures) {
-        SDL_DestroyTexture(texture);
+    for (auto& texture : m_textures) {
+        SDL_DestroyTexture(texture.second);
     }
     
     SDL_DestroyRenderer(m_renderer);
@@ -40,15 +41,23 @@ void Engine::createWindow(std::string_view title, uint32_t width, uint32_t heigh
     }
 }
 
-void Engine::pollEvents() {
+SDL_Event Engine::pollEvents(bool doChecks) {
     SDL_Event e;
     SDL_PollEvent(&e);
+
+    m_keystate = SDL_GetKeyboardState(NULL);
+
+    if (!doChecks) {
+        return e;
+    }
 
     switch (e.type) {
         case SDL_EVENT_QUIT:
             m_shouldClose = true;
             break;
     }
+
+    return e;
 }
 
 void Engine::clear() {
@@ -59,7 +68,7 @@ void Engine::present() {
     SDL_RenderPresent(m_renderer);
 }
 
-size_t Engine::addTexture(const std::string& path) {
+SDL_Texture* Engine::addTexture(const std::string& path) {
     if (hasTexture(path)) {
         throw std::runtime_error("Trying to add a duplicate texture");
     }
@@ -71,26 +80,19 @@ size_t Engine::addTexture(const std::string& path) {
     }
 
     // construct a new texture
-    m_textures.emplace_back(SDL_CreateTextureFromSurface(m_renderer, img));
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(m_renderer, img);
+    m_textures.emplace(path, texture);
+
     SDL_DestroySurface(img);
-    if (m_textures.back() == NULL) {
-        throw std::runtime_error("SDL_RenderTexture nullptr exception");
-    }
 
-    //--- TODO check for null textures and fill them before blindly appending
-
-    // add the index to our tracker
-    size_t index = m_textures.size() - 1;
-    m_texture_map.emplace(path, index);
-    return index;
+    return texture;
 }
 
 void Engine::removeTexture(const std::string& textureName) {
-    if (!m_texture_map.count(textureName)) {
+    if (!m_textures.count(textureName)) {
         return;
     }
-    m_textures[m_texture_map.at(textureName)] = nullptr;
-    m_texture_map.erase(m_texture_map.find(textureName));
+    m_textures.erase(m_textures.find(textureName));
 }
 
 int32_t Engine::windowWidth() const {
@@ -103,4 +105,10 @@ int32_t Engine::windowHeight() const {
     int h;
     SDL_GetWindowSize(m_window, nullptr, &h);
     return h;
+}
+
+std::tuple<int32_t, int32_t> Engine::windowDimensions() const {
+    int w, h;
+    SDL_GetWindowSize(m_window, &w, &h);
+    return {w, h};
 }

@@ -1,20 +1,11 @@
 #pragma once
-
-#ifdef INCLUDE_SDL
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
-#endif // INCLUDE_SDL
 
 #include <cstdint>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
-
-// Forward Declaration work when the members are pointers
-// see https://stackoverflow.com/questions/9119236/c-class-forward-declaration
-struct SDL_Window;
-struct SDL_Renderer;
-struct SDL_Texture;
 
 // These match the SDL spec for ease of use
 using WindowOptions = uint32_t;
@@ -50,7 +41,7 @@ public:
     void createWindow(std::string_view title, uint32_t width = 1200, uint32_t height = 800, WindowOptions opts = NULL);
 
     // this is optional you can poll events yourself if you choose
-    void pollEvents();
+    SDL_Event pollEvents(bool doChecks = true);
 
     // clear color buffer
     void clear();
@@ -63,23 +54,25 @@ public:
     void setShouldClose(bool b = true) { m_shouldClose = b; }
 
     // for texture tracking
-    bool hasTexture(const std::string& textureName) const { return m_texture_map.count(textureName); }
-    size_t addTexture(const std::string& path);
-    void removeTexture(const std::string& textureName);
-    size_t indexOfTexture(const std::string& textureName) const { return m_texture_map.at(textureName); }
+    bool hasTexture(const std::string& path) const { return m_textures.count(path); }
+    SDL_Texture* textureAt(const std::string& path) { return m_textures.at(path); }
+    SDL_Texture* addTexture(const std::string& path);
+    void removeTexture(const std::string& path);
+
+    uint8_t getKeyState(uint32_t key) const { return m_keystate[key]; }
 
     int32_t windowWidth() const;
     int32_t windowHeight() const;
+    std::tuple<int32_t, int32_t> windowDimensions() const;
 
     SDL_Renderer* renderer() { return m_renderer; }
     SDL_Window* window() { return m_window; }
-    SDL_Texture* textureAt(size_t i) { return m_textures.at(i); }
 
 private:
     SDL_Window* m_window{nullptr};
     SDL_Renderer* m_renderer{nullptr};
-    std::vector<SDL_Texture*> m_textures;                   // stored textures
-    std::unordered_map<std::string, size_t> m_texture_map;  // map to their indices for lookup
+    std::unordered_map<std::string, SDL_Texture*> m_textures;
+    const uint8_t* m_keystate;
 
     bool m_shouldClose{false};
 };
