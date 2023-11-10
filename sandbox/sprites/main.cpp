@@ -51,6 +51,12 @@ int main() {
             jumping = false;
         }
 
+        if (sprite.positionX() < -sprite.width()) {
+            sprite.setPositionX(engine.windowWidth());
+        } else if (sprite.positionX() > engine.windowWidth()) {
+            sprite.setPositionX(-sprite.width());
+        }
+
         sprite.draw();
         engine.present();
     }
